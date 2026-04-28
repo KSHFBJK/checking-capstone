@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard | AI Phishing Protection</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-6 font-sans">
+
+<div class="max-w-xl w-full bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8">
+
+    <!-- HEADER -->
+    <div class="text-center mb-8">
+        <div class="inline-block p-3 bg-blue-600/20 rounded-full mb-4">
+            <i class="fas fa-shield-alt text-blue-500 text-3xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold">PhishGuard <span class="text-blue-500">AI</span></h1>
+        <p class="text-slate-400 mt-2">Neural URL Security Scanner</p>
+    </div>
+
+    <!-- INPUT -->
+    <div class="space-y-4">
+
+        <input type="text" id="urlInput"
+            placeholder="Paste suspicious URL here..."
+            class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-4 text-white">
+
+        <div class="flex gap-3">
+
+            <button id="scanBtn"
+                onclick="performScan('url')"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-bold">
+                <i class="fas fa-search"></i> Analyze URL
+            </button>
+
+            <label class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg text-center cursor-pointer">
+                <i class="fas fa-upload"></i>
+                <input type="file" id="fileInput" class="hidden" onchange="performScan('file')">
+            </label>
+
+        </div>
+
+    </div>
+
+    <!-- RESULT -->
+    <div id="resultBox" class="hidden mt-10 p-6 rounded-xl border border-slate-700">
+
+        <div class="flex justify-between mb-4">
+            <div>
+                <div class="text-xs text-slate-400">Ensemble AI Score</div>
+                <div id="percentage" class="text-3xl font-bold">0%</div>
+            </div>
+            <div id="threatBadge" class="text-xs px-3 py-1 rounded"></div>
+        </div>
+
+        <div class="w-full bg-slate-700 h-2 rounded-full mb-6">
+            <div id="gauge" class="h-full w-0 transition-all"></div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div id="statusIcon"></div>
+            <div>
+                <div id="verdict" class="font-bold uppercase"></div>
+                <div id="recommendation" class="text-xs text-slate-400"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+async function performScan(type) {
+
+    const urlInput = document.getElementById("urlInput");
+    const fileInput = document.getElementById("fileInput");
+    const btn = document.getElementById("scanBtn");
+    const resultBox = document.getElementById("resultBox");
+
+    if (type === "url" && !urlInput.value.trim()) {
+        alert("Enter URL first");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = "Scanning...";
+    resultBox.classList.add("hidden");
+
+    let payload;
+
+    // FIXED: use JSON for backend consistency
+    if (type === "url") {
+        payload = JSON.stringify({ url: urlInput.value.trim() });
+    } else {
+        if (!fileInput.files.length) {
+            alert("Select file first");
+            btn.disabled = false;
+            btn.innerHTML = "Analyze URL";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        payload = formData;
+    }
+
+    try {
+
+        const res = await fetch("/api/detect", {
+            method: "POST",
+            headers: type === "url"
+                ? {"Content-Type": "application/json"}
+                : {},
+            body: payload
+        });
+
+        if (!res.ok) throw new Error("Server error");
+
+        const data = await res.json();
+
+        let score = parseFloat(data.score || 0);
+        score = Math.min(Math.max(score, 0), 100);
+
+        const verdict = data.verdict || "safe";
+
+        const recommendation =
+            data.recommendation ||
+            (verdict === "safe"
+                ? "Safe to proceed"
+                : "Avoid entering sensitive data");
+
+        resultBox.classList.remove("hidden");
+
+        document.getElementById("percentage").innerText = score.toFixed(2) + "%";
+        document.getElementById("verdict").innerText = verdict.toUpperCase();
+        document.getElementById("recommendation").innerText = recommendation;
+
+        const gauge = document.getElementById("gauge");
+        const badge = document.getElementById("threatBadge");
+        const icon = document.getElementById("statusIcon");
+
+        gauge.style.width = score + "%";
+        gauge.className = "h-full transition-all";
+
+        if (verdict === "phishing") {
+            gauge.classList.add("bg-red-500");
+            badge.className = "text-red-500";
+            badge.innerText = "High Risk";
+            icon.innerHTML = "⚠️";
+        }
+        else if (verdict === "suspicious") {
+            gauge.classList.add("bg-orange-500");
+            badge.className = "text-orange-400";
+            badge.innerText = "Medium Risk";
+            icon.innerHTML = "⚡";
+        }
+        else {
+            gauge.classList.add("bg-green-500");
+            badge.className = "text-green-400";
+            badge.innerText = "Safe";
+            icon.innerHTML = "✔️";
+        }
+
+    } catch (err) {
+        console.error(err);
+        resultBox.classList.remove("hidden");
+
+        document.getElementById("percentage").innerText = "0%";
+        document.getElementById("verdict").innerText = "ERROR";
+        document.getElementById("recommendation").innerText = "Server failed";
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search"></i> Analyze URL';
+}
+
+</script>
+
+</body>
+</html>

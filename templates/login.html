@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-900 flex items-center justify-center h-screen">
+
+<div class="bg-white p-10 rounded-2xl shadow-2xl w-96">
+
+    <h2 class="text-2xl font-bold text-center text-slate-800 mb-6">
+        Admin Portal
+    </h2>
+
+    <!-- SAFE ERROR HANDLING -->
+    {% if error %}
+    <p class="text-red-500 text-sm text-center mb-4">
+        {{ error }}
+    </p>
+    {% endif %}
+
+    <form method="POST" onsubmit="return validateForm()">
+
+        <input type="password"
+               name="password"
+               id="password"
+               placeholder="System Password"
+               autocomplete="current-password"
+               class="w-full border p-3 rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 outline-none">
+
+        <button id="loginBtn"
+                class="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors">
+
+            Access Dashboard
+        </button>
+
+    </form>
+
+</div>
+
+<script>
+function validateForm() {
+    const pass = document.getElementById("password").value;
+
+    if (!pass || pass.trim().length === 0) {
+        alert("Password required");
+        return false;
+    }
+
+    const btn = document.getElementById("loginBtn");
+    btn.disabled = true;
+    btn.innerText = "Logging in...";
+
+    return true;
+}
+</script>
+
+</body>
+</html>
