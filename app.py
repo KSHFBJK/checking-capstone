@@ -201,6 +201,7 @@ def whitelist_add():
 # =========================
 @app.route("/whitelist/delete/<domain>")
 def whitelist_delete(domain):
+    
     if not session.get("admin"):
         return redirect("/login")
 
@@ -240,4 +241,5 @@ def export_csv():
 # RUN
 # =========================
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
